@@ -367,7 +367,7 @@ export default function AdminBannerPanel() {
                 <div className="grid grid-cols-2 w-full min-h-[300px]">
                   <div className={`relative ${currentBanner.textPosition === 'OUTSIDE_LEFT' ? 'order-2' : 'order-1'}`}>
                     {desktopPreviewImage ? (
-                      <Image src={desktopPreviewImage} alt="Preview" fill className="object-cover" />
+                      <Image src={desktopPreviewImage} alt="Preview" fill className="object-cover"  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-gray-400 bg-gray-200">Image Area</div>
                     )}
@@ -392,7 +392,7 @@ export default function AdminBannerPanel() {
                 /* Overlay Layout OR Mobile Layout */
                 <div className={`relative w-full ${previewMode === 'desktop' ? 'aspect-[21/9]' : 'flex-1'}`}>
                   {activePreviewImage ? (
-                    <Image src={activePreviewImage} alt="Preview" fill className="object-cover" />
+                    <Image src={activePreviewImage} alt="Preview" fill className="object-cover"  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-gray-400">
                       {previewMode === 'desktop' ? 'Desktop Image Area' : 'Mobile Image Area'}
@@ -461,7 +461,7 @@ export default function AdminBannerPanel() {
                       alt={banner.title || 'Banner'}
                       fill
                       className="object-cover"
-                    />
+                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                     {!banner.isActive && (
                       <div className="absolute top-2 left-2 bg-gray-800/80 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm">INACTIVE</div>
                     )}

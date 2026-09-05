@@ -49,15 +49,28 @@ export default function ProductDetail({ product, onBack, onAddToCart }) {
   };
 
   const handleAddToCart = () => {
+    if (!selectedSize) {
+      alert('Please select a size before adding to cart.');
+      return;
+    }
+
+    const chosenColor = (product.colors && product.colors.length > 0) 
+      ? (product.colors[selectedColorIndex] || '#000000') 
+      : null;
+
     onAddToCart({
       ...product,
-      title: product.title,
+      title: product.title || product.name,
       description: activeDescription,
       image: images[activeImageIndex],
-      selectedSize: (product.variants && product.variants.length > 0) ? selectedSize : null,
-      selectedColor: (product.variants && product.variants.length > 0) ? (product.colors?.[selectedColorIndex] || '#000000') : null,
+      // Explicitly map properties so both drawer and checkout capture them seamlessly
+      selectedSize: selectedSize,
+      size: selectedSize,
+      selectedColor: chosenColor,
+      color: chosenColor,
       quantity,
     });
+
     setAddedNotification(true);
     setTimeout(() => setAddedNotification(false), 2500);
   };
@@ -118,11 +131,13 @@ export default function ProductDetail({ product, onBack, onAddToCart }) {
         {/* Right Column: Info & Accordion Sections */}
         <div className="pdp-info-section">
           <span className="pdp-category-tag">{product.category || 'Luxury Footwear'}</span>
-          <h1 className="pdp-product-title">{product.title}</h1>
+          <h1 className="pdp-product-title">{product.title || product.name}</h1>
 
           <div className="pdp-pricing-box">
-            <span className="pdp-sale-price">{product.formattedPrice}</span>
-            <span className="pdp-original-price">{product.formattedOriginalPrice}</span>
+            <span className="pdp-sale-price">{product.formattedPrice || product.price}</span>
+            {product.formattedOriginalPrice && (
+              <span className="pdp-original-price">{product.formattedOriginalPrice}</span>
+            )}
             <span className="pdp-discount-badge">{product.discount || '15% OFF'}</span>
           </div>
 
@@ -197,7 +212,7 @@ export default function ProductDetail({ product, onBack, onAddToCart }) {
           )}
 
           {/* ========================================== */}
-          {/* PRODUCT DETAILS ACCORDION SECTION ONLY      */}
+          {/* PRODUCT DETAILS ACCORDION SECTION ONLY     */}
           {/* ========================================== */}
           <div className="pdp-accordion-wrapper">
             <div className="accordion-item">

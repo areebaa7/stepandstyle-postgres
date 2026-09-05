@@ -687,30 +687,18 @@ function CheckoutContent() {
                   <div className="bg-white p-4 rounded-lg border border-gray-100 space-y-3">
                     <p className="text-sm font-bold text-gray-900">Transfer details</p>
                     <div className="grid gap-3 text-xs text-gray-600 sm:grid-cols-2">
-                      {bankPaymentAvailable && (
                         <div className="rounded-lg bg-gray-50 p-3 space-y-1">
-                          <p className="font-bold text-gray-900">{conversionSettings.bankName}</p>
-                          {conversionSettings.bankAccountTitle && <p><strong>Title:</strong> {conversionSettings.bankAccountTitle}</p>}
-                          {conversionSettings.bankIban && <p className="break-all"><strong>IBAN:</strong> {conversionSettings.bankIban}</p>}
-                          {conversionSettings.bankAccountNumber && <p className="break-all"><strong>Account:</strong> {conversionSettings.bankAccountNumber}</p>}
+                          <p className="font-bold text-gray-900">Meezan Bank</p>
+                          <p><strong>Title:</strong> ANISA SHAHID</p>
+                          <p className="break-all"><strong>Account:</strong> 9814 0112796881</p>
+                          <p className="break-all"><strong>IBAN:</strong> PK66 MEZN 0098 1401 1279 6881</p>
                         </div>
-                      )}
-                      {easypaisaAvailable && (
                         <div className="rounded-lg bg-gray-50 p-3 space-y-1">
-                          <p className="font-bold text-gray-900">Easypaisa</p>
-                          {conversionSettings.easypaisaAccountTitle && <p><strong>Title:</strong> {conversionSettings.easypaisaAccountTitle}</p>}
-                          <p><strong>Number:</strong> {conversionSettings.easypaisaAccountNumber}</p>
+                          <p className="font-bold text-gray-900">EasyPaisa / JazzCash</p>
+                          <p><strong>Number:</strong> +92-332-9822592</p>
                         </div>
-                      )}
-                      {jazzcashAvailable && (
-                        <div className="rounded-lg bg-gray-50 p-3 space-y-1">
-                          <p className="font-bold text-gray-900">JazzCash</p>
-                          {conversionSettings.jazzcashAccountTitle && <p><strong>Title:</strong> {conversionSettings.jazzcashAccountTitle}</p>}
-                          <p><strong>Number:</strong> {conversionSettings.jazzcashAccountNumber}</p>
-                        </div>
-                      )}
-                    </div>
-                    {conversionSettings.manualPaymentInstructions && (
+                      </div>
+                      {conversionSettings.manualPaymentInstructions && (
                       <p className="rounded-lg border border-purple-100 bg-purple-50 p-3 text-xs leading-5 text-purple-900">
                         {conversionSettings.manualPaymentInstructions}
                       </p>

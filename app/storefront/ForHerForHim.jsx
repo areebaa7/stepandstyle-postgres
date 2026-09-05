@@ -16,7 +16,7 @@ export default function ForHerForHim({ setCurrentPage }) {
         transition={{ duration: 0.3 }}
       >
         <div className="banner-image-wrapper">
-          <img src="/assets/women-shoes.jpg" alt="For Her" className="banner-image" />
+          <img src="/assets/summer_essentials.jpg" alt="For Her" className="banner-image" />
         </div>
         <div className="banner-overlay">
           <div className="banner-content">

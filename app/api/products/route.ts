@@ -31,7 +31,11 @@ async function requireAdmin(request: NextRequest) {
 // GET /api/products - Get all products
 export async function GET(request: NextRequest) {
   try {
-    console.log("1"); await ensureProductsSeeded(); console.log("2");
+    try {
+      await ensureProductsSeeded();
+    } catch (seedErr) {
+      console.warn('Seed check skipped or failed:', seedErr);
+    }
 
     const searchParams = request.nextUrl.searchParams;
     const collectionSlug = searchParams.get('collection');
@@ -44,7 +48,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
 
     const where: any = {};
-    if (category) {
+    if (category && category !== 'ALL') {
       where.category = category.toUpperCase();
     }
     if (collectionSlug) {
@@ -79,11 +83,11 @@ export async function GET(request: NextRequest) {
         const targetProducts = new Set<string>();
 
         for (const event of activeEvents) {
-          for (const collectionId of (event.targetCollections as string[]) || []) {
-            targetCollections.add(collectionId);
+          for (const colId of (event.targetCollections as string[]) || []) {
+            targetCollections.add(colId);
           }
-          for (const productId of (event.targetProducts as string[]) || []) {
-            targetProducts.add(productId);
+          for (const prodId of (event.targetProducts as string[]) || []) {
+            targetProducts.add(prodId);
           }
         }
 
@@ -101,7 +105,6 @@ export async function GET(request: NextRequest) {
             { OR: orConditions }
           ];
         } else {
-          // If sales are active but have no targets, no products are on sale
           where.id = 'non-existent-id-to-return-none';
         }
       } else {
@@ -112,7 +115,7 @@ export async function GET(request: NextRequest) {
     if (isTrending) {
       where.OR = [
         ...(where.OR || []),
-        { saleCount: { gt: 10 } }, // Lowered threshold for demonstration
+        { saleCount: { gt: 10 } },
         { rating: { gt: 4.0 } }
       ];
     }
@@ -146,19 +149,42 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    console.log("3"); const products = await prisma.product.findMany({
+    const products = await prisma.product.findMany({
       where: Object.keys(where).length ? where : undefined,
       orderBy,
       include: { collection: true },
     });
 
+    // Ensure serialized items include explicit sizes & colors arrays for frontend rendering
+    const formattedData = products.map((product) => {
+      const baseSerialized = serializeProduct(product);
+      
+      // Extract sizes safely from variants or specification fields if missing in serializer
+      let parsedSizes = (product as any).sizes;
+      if (!parsedSizes || !Array.isArray(parsedSizes) || parsedSizes.length === 0) {
+        if (Array.isArray(product.variants)) {
+          parsedSizes = product.variants.map((v: any) => v.size).filter(Boolean);
+        }
+      }
+      if (!parsedSizes || parsedSizes.length === 0) {
+        parsedSizes = ['36', '37', '38', '39', '40', '41', '42']; // Safe footwear default
+      }
+
+      return {
+        ...baseSerialized,
+        sizes: parsedSizes,
+        colors: Array.isArray(product.colors) && product.colors.length > 0 ? product.colors : ['#1F2937'],
+        images: Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image].filter(Boolean),
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      data: products.map(serializeProduct),
-      count: products.length,
+      data: formattedData,
+      count: formattedData.length,
     });
   } catch (error) {
-    console.error('Error fetching products:', error);
+    console.error('Error fetching products API:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch products' }, { status: 500 });
   }
 }
@@ -177,6 +203,14 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.warn('Product validation failed:', error, 'Payload:', body);
       return NextResponse.json({ success: false, error }, { status: 400 });
+    }
+
+    const existingProduct = await prisma.product.findUnique({ where: { slug: data.slug } });
+    if (existingProduct) {
+      return NextResponse.json(
+        { success: false, error: 'A product with this slug already exists. Please choose a different identifier.' },
+        { status: 409 }
+      );
     }
 
     const product = await prisma.product.create({
@@ -216,7 +250,6 @@ export async function POST(request: NextRequest) {
           `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/products/${product.slug}`,
           'Shop Now'
         );
-        // Send email in the background
         sendMarketingEmails({
           recipients: subscribers,
           subject: `New Arrival: ${product.title}`,

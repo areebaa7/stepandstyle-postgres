@@ -62,7 +62,6 @@ export default function CheckoutPage({ cartItems = [], setCurrentPage, onOrderSu
     setLoading(true);
 
     try {
-      // Generate a unique idempotency key complying with backend regex pattern (/^[A-Za-z0-9][A-Za-z0-9_-]{15,127}$/)
       const idempotencyKey = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 9)}_${Math.random().toString(36).substring(2, 9)}`;
 
       const response = await fetch('/api/orders', {
@@ -86,6 +85,8 @@ export default function CheckoutPage({ cartItems = [], setCurrentPage, onOrderSu
           receiptUrl: formData.paymentMethod === 'ONLINE' ? formData.receiptUrl : undefined,
           items: cartItems.map(item => ({
             id: String(item.id || item.productId || ''),
+            name: item.title || item.name || 'Product',
+            price: Number(String(item.price).replace(/[^0-9.]/g, '')),
             quantity: Math.min(100, Math.max(1, parseInt(item.quantity, 10) || 1)),
             size: item.selectedSize || item.size || null,
             color: item.selectedColor || item.color || null,
@@ -146,7 +147,7 @@ export default function CheckoutPage({ cartItems = [], setCurrentPage, onOrderSu
         >
           <CheckCircle size={64} className="success-icon" />
           <h1>Thank you for your order!</h1>
-          <p>Your order has been placed successfully with <strong>Cash on Delivery (Open Parcel Inspection)</strong> enabled.</p>
+          <p>Your order has been placed successfully.</p>
           <div className="success-actions">
             <button className="btn-return-home" onClick={() => setCurrentPage('home')}>
               Continue Shopping
@@ -344,21 +345,29 @@ export default function CheckoutPage({ cartItems = [], setCurrentPage, onOrderSu
             <h3>Order Summary ({cartItems.length} items)</h3>
             
             <div className="summary-items-scroll">
-              {cartItems.map((item, idx) => (
-                <div key={idx} className="summary-item-row">
-                  <div className="item-img-wrap">
-                    <img src={item.image} alt={item.title || item.name} />
-                    <span className="item-qty-badge">{item.quantity || 1}</span>
+              {cartItems.map((item, idx) => {
+                const itemSize = item.selectedSize || item.size;
+                const itemColor = item.selectedColor || item.color;
+                return (
+                  <div key={idx} className="summary-item-row">
+                    <div className="item-img-wrap">
+                      <img src={item.image} alt={item.title || item.name} />
+                      <span className="item-qty-badge">{item.quantity || 1}</span>
+                    </div>
+                    <div className="item-details-wrap">
+                      <h4>{item.title || item.name}</h4>
+                      <p>
+                        {itemSize ? `Size: ${itemSize}` : ''} 
+                        {itemSize && itemColor ? ' | ' : ''}
+                        {itemColor ? `Color` : ''}
+                      </p>
+                    </div>
+                    <span className="item-total-price">
+                      Rs.{((Number(item.price) || 0) * (item.quantity || 1)).toLocaleString()}
+                    </span>
                   </div>
-                  <div className="item-details-wrap">
-                    <h4>{item.title || item.name}</h4>
-                    <p>{item.selectedSize ? `Size: ${item.selectedSize}` : ''} {item.selectedColor ? `| Color` : ''}</p>
-                  </div>
-                  <span className="item-total-price">
-                    Rs.{((Number(item.price) || 0) * (item.quantity || 1)).toLocaleString()}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="summary-totals-breakdown">

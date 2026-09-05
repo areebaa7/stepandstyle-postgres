@@ -92,7 +92,7 @@ export default function SplashScreen() {
               priority
               className="object-contain drop-shadow-2xl"
               unoptimized={!settings.imageUrl.startsWith('/')}
-            />
+             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
           </div>
         )}
         {settings.title && (

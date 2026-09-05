@@ -25,7 +25,7 @@ export default function OurStoryPage() {
                 alt="Craftsmanship"
                 fill
                 className="object-cover"
-              />
+               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
               <div className="absolute inset-0 bg-[#6B21A8]/10" />
             </ScrollAnimate>
             <ScrollAnimate animation="fade-in" delay="0.2s" className="space-y-8">

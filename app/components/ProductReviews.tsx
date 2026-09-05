@@ -367,7 +367,7 @@ export default function ProductReviews({ productId, productName, productImage }:
                                  fill
                                  className="object-cover opacity-50"
                                  unoptimized
-                               />
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                              </div>
                            ) : (
                              <video src={review.videoUrl} className="w-full h-full object-cover opacity-60" muted loop onMouseOver={e => e.currentTarget.play()} onMouseOut={e => e.currentTarget.pause()} />

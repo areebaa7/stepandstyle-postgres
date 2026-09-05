@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useCart } from '@/app/context/CartContext';
 import { AnimatePresence } from 'framer-motion';
 import Navbar from './storefront/Navbar';
 import SplashScreen from './storefront/SplashScreen';
@@ -30,8 +31,7 @@ export default function Home() {
   const [showSplash, setShowSplash] = useState(true);
   
   // Global Cart State
-  const [cartItems, setCartItems] = useState<any[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const { items: cartItems, addItem, removeItem, updateQuantity, clearCart, isCartOpen, setIsCartOpen } = useCart();
 
   // Auth Modal State
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -43,33 +43,30 @@ export default function Home() {
   };
 
   const handleAddToCart = (productWithSpecs: any) => {
-    setCartItems(prev => {
-      const existingIndex = prev.findIndex(
-        item => item.id === productWithSpecs.id && 
-                item.selectedSize === productWithSpecs.selectedSize && 
-                item.selectedColor === productWithSpecs.selectedColor
-      );
-      if (existingIndex > -1) {
-        const updated = [...prev];
-        updated[existingIndex].quantity += productWithSpecs.quantity;
-        return updated;
-      }
-      return [...prev, productWithSpecs];
-    });
+    addItem({
+      id: productWithSpecs.id,
+      title: productWithSpecs.title,
+      price: productWithSpecs.price,
+      image: productWithSpecs.image || productWithSpecs.images?.[0] || '',
+      size: productWithSpecs.size || productWithSpecs.selectedSize || undefined,
+      color: productWithSpecs.color || productWithSpecs.selectedColor || undefined
+    }, productWithSpecs.quantity || 1);
     setIsCartOpen(true);
   };
 
   const handleUpdateQuantity = (index: number, newQty: number) => {
     if (newQty < 1) return;
-    setCartItems(prev => {
-      const updated = [...prev];
-      updated[index].quantity = newQty;
-      return updated;
-    });
+    const item = cartItems[index];
+    if (item) {
+      updateQuantity(item.id, newQty, item.size, item.color);
+    }
   };
 
   const handleRemoveItem = (index: number) => {
-    setCartItems(prev => prev.filter((_, i) => i !== index));
+    const item = cartItems[index];
+    if (item) {
+      removeItem(item.id, item.size, item.color);
+    }
   };
 
   useEffect(() => {
@@ -123,7 +120,7 @@ export default function Home() {
             cartItems={cartItems} 
             setCurrentPage={setCurrentPage} 
             onOrderSuccess={() => {
-              setCartItems([]); 
+              clearCart(); 
             }}
           />
         ) : currentPage === 'affiliate' ? (

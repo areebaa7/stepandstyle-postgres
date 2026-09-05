@@ -621,62 +621,41 @@ export async function POST(request: NextRequest) {
       if (variants.length > 0) {
         const selectedColor = variantSelectionKey(item.color);
         const selectedSize = variantSelectionKey(item.size);
-        if (!selectedColor || !selectedSize) {
-          return NextResponse.json(
-            {
-              success: false,
-              code: 'VARIANT_REQUIRED',
-              productId: product.id,
-              error: `Please select a color and size for ${product.title}.`,
-            },
-            { status: 400 },
-          );
-        }
 
         selectedVariant = variants.find(
           (variant) =>
             variantSelectionKey(variant.color) === selectedColor &&
             variantSelectionKey(variant.size) === selectedSize,
         ) || null;
-        if (!selectedVariant) {
-          return NextResponse.json(
-            {
-              success: false,
-              code: 'INVALID_VARIANT',
-              productId: product.id,
-              error: `The selected color and size for ${product.title} are no longer available.`,
-            },
-            { status: 409 },
-          );
-        }
 
-        const stockKey = `${product.id}::${variantSelectionKey(selectedVariant.color)}::${variantSelectionKey(selectedVariant.size)}`;
-        const existingReservation = inventoryReservations.get(stockKey);
-        const totalRequested = (existingReservation?.quantity || 0) + item.quantity;
-        inventoryReservations.set(stockKey, {
-          productId: product.id,
-          productName: product.title,
-          variantId: selectedVariant.id,
-          color: selectedVariant.color,
-          size: selectedVariant.size,
-          quantity: totalRequested,
-        });
-        if (totalRequested > selectedVariant.stock) {
-          return NextResponse.json(
-            {
-              success: false,
-              code: 'INSUFFICIENT_STOCK',
-              productId: product.id,
-              variantId: selectedVariant.id,
-              availableStock: selectedVariant.stock,
-              error: selectedVariant.stock === 0
-                ? `${product.title} (${selectedVariant.color} / ${selectedVariant.size}) is out of stock.`
-                : `Only ${selectedVariant.stock} of ${product.title} (${selectedVariant.color} / ${selectedVariant.size}) are available.`,
-            },
-            { status: 409 },
-          );
+        if (selectedVariant) {
+          const stockKey = `${product.id}::${variantSelectionKey(selectedVariant.color)}::${variantSelectionKey(selectedVariant.size)}`;
+          const existingReservation = inventoryReservations.get(stockKey);
+          const totalRequested = (existingReservation?.quantity || 0) + item.quantity;
+          inventoryReservations.set(stockKey, {
+            productId: product.id,
+            productName: product.title,
+            variantId: selectedVariant.id,
+            color: selectedVariant.color,
+            size: selectedVariant.size,
+            quantity: totalRequested,
+          });
+          if (totalRequested > selectedVariant.stock) {
+            return NextResponse.json(
+              {
+                success: false,
+                code: 'INSUFFICIENT_STOCK',
+                productId: product.id,
+                variantId: selectedVariant.id,
+                availableStock: selectedVariant.stock,
+                error: selectedVariant.stock === 0
+                  ? `${product.title} (${selectedVariant.color} / ${selectedVariant.size}) is out of stock.`
+                  : `Only ${selectedVariant.stock} of ${product.title} (${selectedVariant.color} / ${selectedVariant.size}) are available.`,
+              },
+              { status: 409 },
+            );
+          }
         }
-
       } else {
         legacyProducts.set(product.id, product.title);
       }
@@ -697,8 +676,8 @@ export async function POST(request: NextRequest) {
         price: unitPrice,
         quantity: item.quantity,
         image: selectedVariant?.imageUrl || selectedVariant?.images[0] || product.image,
-        size: selectedVariant?.size || null,
-        color: selectedVariant?.color || null,
+        size: selectedVariant?.size || item.size || null,
+        color: selectedVariant?.color || item.color || null,
       });
     }
     const numericSubtotal = roundMoney(

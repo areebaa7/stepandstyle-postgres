@@ -161,17 +161,6 @@ export default function AffiliatePage() {
               <div className="tier-percent">12–15%</div>
               <p className="tier-target">Influencers, fashion pages, and TikTok reviewers sharing high-engagement reels.</p>
             </motion.div>
-
-            <motion.div className="tier-card" whileHover={{ y: -4 }} transition={{ duration: 0.3 }}>
-              <span className="tier-badge-top">Tier 03</span>
-              <h3>Salon & Bulk Partners</h3>
-              <div className="tier-percent">15–18%</div>
-              <p className="tier-target">High-volume community partners and premium retail advocates.</p>
-            </motion.div>
-
-            <motion.div className="tier-card-image" whileHover={{ y: -4 }} transition={{ duration: 0.3 }}>
-              <img src="/assets/women-lilac-shoes.jpeg" alt="Salon & Bulk Partners" />
-            </motion.div>
           </div>
 
           <motion.div 

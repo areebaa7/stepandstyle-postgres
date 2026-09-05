@@ -139,7 +139,7 @@ export default function ReviewsPage() {
                   <div className="mt-auto pt-6 border-t border-gray-50 grid grid-cols-4 gap-2">
                     {review.images?.map((img, idx) => (
                       <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-gray-100 relative group/media">
-                        <Image src={img} alt="User photo" fill className="object-cover transition-transform duration-500 group-hover/media:scale-110" />
+                        <Image src={img} alt="User photo" fill className="object-cover transition-transform duration-500 group-hover/media:scale-110"  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                       </div>
                     ))}
                     {review.videoUrl && (
@@ -150,7 +150,7 @@ export default function ReviewsPage() {
                             alt="Video"
                             fill
                             className="object-cover opacity-60"
-                          />
+                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                         ) : (
                           <video
                             src={review.videoUrl}

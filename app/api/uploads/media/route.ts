@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { UploadApiResponse } from 'cloudinary';
-import cloudinary from '@/lib/cloudinary';
+import { supabase } from '@/lib/supabase';
 import { verifyAdminRequest } from '@/lib/auth';
 import { authRateLimitHeaders, consumeAuthRateLimit, getAuthClientAddress } from '@/lib/authRateLimit';
 import {
@@ -44,25 +43,43 @@ export async function POST(request: NextRequest) {
     if (files.reduce((total, file) => total + file.size, 0) > MAX_ADMIN_BATCH_BYTES) {
       return NextResponse.json({ success: false, code: 'UPLOAD_TOO_LARGE', error: 'Combined upload size exceeds 75 MB.' }, { status: 413 });
     }
+
     const validated = await Promise.all(files.map((file) => validateUploadFile(file, { allowImages: true, allowVideos: true })));
     const urls: string[] = [];
-    for (const item of validated) {
-      const result = await new Promise<UploadApiResponse>((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          {
-            folder: 'step-and-style/media',
-            resource_type: item.resourceType,
-            use_filename: false,
-            unique_filename: true,
-            overwrite: false,
-          },
-          (error, upload) => error || !upload ? reject(error || new Error('Cloudinary returned no result.')) : resolve(upload),
-        );
-        stream.end(item.buffer);
-      });
-      if (!result.secure_url?.startsWith('https://')) throw new Error('Cloudinary returned an insecure URL.');
-      urls.push(result.secure_url);
+
+    for (let i = 0; i < validated.length; i++) {
+      const item = validated[i];
+      const originalFile = files[i];
+
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const cleanName = originalFile.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
+      const filePath = `media/${uniqueSuffix}-${cleanName}`;
+
+      // Upload directly to Supabase storage bucket 'step-and-styl-uploads'
+      const { data, error } = await supabase.storage
+        .from('step-and-styl-uploads')
+        .upload(filePath, item.buffer, {
+          contentType: originalFile.type || 'image/jpeg',
+          upsert: true,
+        });
+
+      if (error) {
+        console.error('Supabase storage upload error:', error);
+        throw new Error(error.message || 'Supabase upload failed.');
+      }
+
+      // Retrieve public HTTPS URL
+      const { data: publicUrlData } = supabase.storage
+        .from('step-and-styl-uploads')
+        .getPublicUrl(data.path);
+
+      if (!publicUrlData.publicUrl?.startsWith('https://')) {
+        throw new Error('Supabase returned an insecure URL.');
+      }
+
+      urls.push(publicUrlData.publicUrl);
     }
+
     return NextResponse.json({ success: true, urls }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     const securityResponse = uploadSecurityResponse(error);

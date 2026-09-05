@@ -253,7 +253,7 @@ export default function AdminAIAnalysisPanel() {
                       </div>
                       <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-100 shrink-0">
                         {prod.image ? (
-                          <Image src={prod.image} alt={prod.name} fill className="object-cover" />
+                          <Image src={prod.image} alt={prod.name} fill className="object-cover"  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No image</div>
                         )}

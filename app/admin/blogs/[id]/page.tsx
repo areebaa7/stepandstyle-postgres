@@ -407,7 +407,7 @@ export default function BlogFormPage() {
                       alt="Main image"
                       fill
                       className="object-cover rounded-lg"
-                    />
+                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                     <button
                       type="button"
                       onClick={() => setForm({ ...form, image: '' })}
@@ -453,7 +453,7 @@ export default function BlogFormPage() {
                           alt={`Gallery ${idx}`}
                           fill
                           className="object-cover rounded-lg"
-                        />
+                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                         <button
                           type="button"
                           onClick={() => handleRemoveImage(img)}

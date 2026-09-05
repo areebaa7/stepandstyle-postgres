@@ -42,7 +42,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
             </div>
 
             <div className="cart-promo-banner">
-              🎉 <strong>Free Delivery</strong> &amp; Open Parcel Then Pay enabled on all orders!
+              🎉 <strong>Open Parcel Then Pay</strong> enabled on all orders!
             </div>
 
             <div className="cart-items-list">
@@ -52,30 +52,37 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
                   <p>Your cart is currently empty.</p>
                 </div>
               ) : (
-                cartItems.map((item, index) => (
-                  <div key={`${item.id || index}-${item.selectedSize || 's'}-${item.selectedColor || 'c'}`} className="cart-item-card">
-                    <img src={item.image} alt={item.title || item.name} className="cart-item-img" />
-                    <div className="cart-item-details">
-                      <h4>{item.title || item.name}</h4>
-                      <p className="cart-item-specs">
-                        Size: <strong>{item.selectedSize || item.size}</strong> | Color: 
-                        <span className="cart-color-dot" style={{ backgroundColor: item.selectedColor || item.color }} />
-                      </p>
-                      <p className="cart-item-price">{typeof item.price === 'number' ? `${item.price.toLocaleString()} PKR` : item.price}</p>
-                      
-                      <div className="cart-item-controls">
-                        <div className="cart-qty-box">
-                          <button onClick={() => onUpdateQuantity(index, item.quantity - 1)}>-</button>
-                          <span>{item.quantity}</span>
-                          <button onClick={() => onUpdateQuantity(index, item.quantity + 1)}>+</button>
+                cartItems.map((item, index) => {
+                  const itemSize = item.selectedSize || item.size;
+                  const itemColor = item.selectedColor || item.color;
+                  return (
+                    <div key={`${item.id || 'item'}-${itemSize || 'nosize'}-${itemColor || 'nocolor'}-${index}`} className="cart-item-card">
+                      <img src={item.image} alt={item.title || item.name} className="cart-item-img" />
+                      <div className="cart-item-details">
+                        <h4>{item.title || item.name}</h4>
+                        <p className="cart-item-specs">
+                          {itemSize && <>Size: <strong>{itemSize}</strong></>}
+                          {itemSize && itemColor && ' | '}
+                          {itemColor && (
+                            <>Color: <span className="cart-color-dot" style={{ backgroundColor: itemColor }} /></>
+                          )}
+                        </p>
+                        <p className="cart-item-price">{typeof item.price === 'number' ? `${item.price.toLocaleString()} PKR` : item.price}</p>
+                        
+                        <div className="cart-item-controls">
+                          <div className="cart-qty-box">
+                            <button onClick={() => onUpdateQuantity(index, item.quantity - 1)}>-</button>
+                            <span>{item.quantity}</span>
+                            <button onClick={() => onUpdateQuantity(index, item.quantity + 1)}>+</button>
+                          </div>
+                          <button className="cart-delete-btn" onClick={() => onRemoveItem(index)}>
+                            <Trash2 size={16} />
+                          </button>
                         </div>
-                        <button className="cart-delete-btn" onClick={() => onRemoveItem(index)}>
-                          <Trash2 size={16} />
-                        </button>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 

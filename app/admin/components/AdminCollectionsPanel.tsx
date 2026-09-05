@@ -206,7 +206,7 @@ export default function AdminCollectionsPanel() {
             <div key={collection.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col h-full">
               <div className="w-full h-32 bg-gray-50 rounded-xl overflow-hidden mb-4 relative">
                 {collection.image ? (
-                  <Image src={collection.image} alt={collection.name} fill className="object-cover" />
+                  <Image src={collection.image} alt={collection.name} fill className="object-cover"  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Image</div>
                 )}

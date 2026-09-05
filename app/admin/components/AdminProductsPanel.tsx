@@ -375,49 +375,21 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
     }));
   };
 
-  const syncAssignments = (csv: string) => {
-    const urls = csv
-      .split(',')
-      .map((url) => url.trim())
-      .filter(Boolean);
-    const next = urls.map((url) => imageAssignments.find((a) => a.url === url) || { url, color: '' });
-    setImageAssignments(next);
-    setMatrixColors((colors) => buildColorsFromAssignments(next, colors));
+  
+  const addMatrixColor = () => setMatrixColors([...matrixColors, { name: '' }]);
+  const updateMatrixColor = (index: number, key: keyof MatrixColor, value: string) => {
+    const next = [...matrixColors];
+    next[index] = { ...next[index], [key]: value };
+    setMatrixColors(next);
+  };
+  const removeMatrixColor = (index: number) => {
+    const next = [...matrixColors];
+    next.splice(index, 1);
+    setMatrixColors(next);
   };
 
-  const updateAssignmentColor = (url: string, color: string) => {
-    const exists = imageAssignments.some((a) => a.url === url);
-    const next = exists
-      ? imageAssignments.map((a) => (a.url === url ? { ...a, color } : a))
-      : [...imageAssignments, { url, color }];
-    setImageAssignments(next);
-    setMatrixColors((colors) => buildColorsFromAssignments(next, colors));
-  };
-
-  const removeAssignment = (url: string) => {
-    const next = imageAssignments.filter((a) => a.url !== url);
-    setImageAssignments(next);
-    setMatrixColors((colors) => buildColorsFromAssignments(next, colors));
-  };
-
-  const removeColor = (colorName: string) => {
-    const next = imageAssignments.filter((a) => a.color.trim().toLowerCase() !== colorName.toLowerCase());
-    setImageAssignments(next);
-    setMatrixColors((colors) => buildColorsFromAssignments(next, colors));
-  };
-
-  const renameColor = (oldName: string, newName: string) => {
-    const next = imageAssignments.map((a) =>
-      a.color.trim().toLowerCase() === oldName.toLowerCase() ? { ...a, color: newName } : a,
-    );
-    setImageAssignments(next);
-    setMatrixColors((colors) => buildColorsFromAssignments(next, colors));
-  };
-
-  const updateColorVideo = (colorName: string, videoUrl: string) => {
-    setMatrixColors((current) =>
-      current.map((c) => (c.name.toLowerCase() === colorName.toLowerCase() ? { ...c, videoUrl: videoUrl || undefined } : c)),
-    );
+  const syncGallery = (csv: string) => {
+    handleInputChange('images', csv);
   };
 
   const applyBulkStock = () => {
@@ -615,7 +587,7 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
           {paginatedProducts.map((product) => (
             <div key={product.id} className="border border-gray-200 rounded-2xl p-4 shadow-sm flex gap-4 bg-white hover:shadow-md transition-shadow">
               <div className="w-28 h-28 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 relative">
-                <Image src={product.image || '/logo_main.png'} alt={product.title} fill className="object-cover" />
+                <Image src={product.image || '/logo_main.png'} alt={product.title} fill className="object-cover"  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
               </div>
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between">
@@ -714,7 +686,12 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-              <form id="productForm" onSubmit={handleSubmit} className="space-y-6">
+              {status.type !== 'idle' && (
+                  <div className="mb-4">
+                    <AdminNotice type={status.type} message={status.message} />
+                  </div>
+                )}
+                <form id="productForm" onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-xs font-black text-purple-600 uppercase tracking-widest mb-1.5">Product Slug *</label>
@@ -838,13 +815,7 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
-                  <FileUpload
-                    label="Cover Image"
-                    accept="image"
-                    value={formValues.image}
-                    onChange={(url) => handleInputChange('image', url)}
-                    placeholder="JPG, PNG, WebP — drag & drop or browse"
-                  />
+                  
                   <div className="flex flex-col sm:flex-row gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <label className="flex items-center gap-3 cursor-pointer group">
                       <div className="relative flex items-center">
@@ -874,44 +845,7 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
                   </div>
                 </div>
 
-                {formValues.image && (
-                  <div className="flex flex-wrap items-center gap-3 rounded-xl bg-amber-50 border border-amber-200 p-3">
-                    <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></svg>
-                      Cover color
-                    </span>
-                    <div className="relative">
-                      <input
-                        type="color"
-                        id="cover-color-pick"
-                        value={resolveColorCode(coverAssignment?.color || '')}
-                        onChange={(e) => updateAssignmentColor(formValues.image, nearestColorName(e.target.value))}
-                        className="sr-only"
-                      />
-                      <label
-                        htmlFor="cover-color-pick"
-                        className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-amber-300 bg-white text-[10px] font-black uppercase tracking-widest text-amber-700 hover:border-amber-500 hover:bg-amber-50 transition"
-                      >
-                        Pick color from cover image
-                      </label>
-                    </div>
-                    <span
-                      className="w-6 h-6 rounded-full border border-gray-300 shadow-sm"
-                      style={{ backgroundColor: resolveColorCode(coverAssignment?.color || '') }}
-                      title={coverAssignment?.color || 'No color yet'}
-                    />
-                    <input
-                      type="text"
-                      value={coverAssignment?.color || ''}
-                      onChange={(e) => updateAssignmentColor(formValues.image, e.target.value)}
-                      placeholder="Color name…"
-                      className="w-32 bg-white border border-amber-300 rounded-lg px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-900 focus:ring-2 focus:ring-amber-500 outline-none transition hover:border-amber-400"
-                    />
-                    <p className="w-full sm:w-auto sm:flex-1 text-[10px] text-amber-700/70 leading-relaxed">
-                      Sets the fallback color for this product — the picked color photo is also added to that color&apos;s gallery automatically.
-                    </p>
-                  </div>
-                )}
+                
 
                 <div>
                   <label className="block text-xs font-black text-purple-600 uppercase tracking-widest mb-1.5">Tagline / Short Description *</label>
@@ -946,128 +880,77 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
                     Upload your product images first, then use the eyedropper on each image to sample its exact color — the dot and color name are set automatically. Add sizes once, and every color × size combination gets its own stock.
                   </p>
                   
-                  {/* Step 1: Images & Colors */}
-                  <div className="bg-white p-4 rounded-xl border border-blue-100 space-y-4 shadow-sm">
-                    <label className="block text-xs font-black text-blue-600 uppercase mb-1">Step 1: Upload Images & Pick Colors</label>
-                    <MultiFileUpload
-                      label="Product Images"
-                      value={imageAssignments.map((a) => a.url).join(', ')}
-                      onChange={syncAssignments}
-                      placeholder="Upload all color photos first"
-                      showPreviewGrid={false}
-                    />
+                  
+                    {/* Step 1: Product Images */}
+                    <div className="bg-white p-4 rounded-xl border border-blue-100 space-y-4 shadow-sm">
+                      <label className="block text-xs font-black text-blue-600 uppercase mb-1">Step 1: Product Cover & Gallery</label>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <FileUpload
+                          label="Cover Image"
+                          accept="image"
+                          value={formValues.image}
+                          onChange={(url) => handleInputChange('image', url)}
+                          placeholder="Primary cover image"
+                        />
+                        <MultiFileUpload
+                          label="Gallery Images (3-4 images)"
+                          value={formValues.images}
+                          onChange={syncGallery}
+                          placeholder="Upload distinct gallery images"
+                          showPreviewGrid={true}
+                        />
+                      </div>
+                    </div>
 
-                    {imageAssignments.length > 0 && (
+                    {/* Variant Colors Section */}
+                    <div className="bg-white p-4 rounded-xl border border-blue-100 space-y-4 shadow-sm">
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-xs font-black text-blue-600 uppercase">Step 1B: Variant Colors & Specific Images</label>
+                        <button type="button" onClick={addMatrixColor} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                          + ADD COLOR
+                        </button>
+                      </div>
+                      
+                      {matrixColors.length === 0 && (
+                        <p className="text-xs text-gray-500">No color variants added.</p>
+                      )}
+                      
                       <div className="space-y-3">
-                        <div>
-                          <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                            Assign a color to each photo ({imageAssignments.length})
-                          </p>
-                          <p className="text-[11px] text-blue-700/70 leading-relaxed mt-1">
-                            Click <span className="font-black">&quot;Pick color from image&quot;</span>, then in the color picker press the eyedropper icon (top-left corner) and click the exact color on the photo — the dot and color name update automatically.
-                          </p>
-                        </div>
-                        {imageAssignments.map((assignment, idx) => (
-                          <div key={assignment.url} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100 shadow-inner">
-                            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden bg-white border border-blue-100 flex-shrink-0">
-                              <Image src={assignment.url} alt="" fill unoptimized className="object-contain" />
-                            </div>
-                            <div className="flex flex-wrap items-center gap-3 flex-1">
-                              <div className="relative">
+                        {matrixColors.map((color, idx) => (
+                          <div key={idx} className="flex flex-col md:flex-row items-center gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div className="w-full md:w-1/3">
+                              <label className="block text-[10px] font-bold text-gray-700 uppercase mb-1">Color Name</label>
+                              <div className="flex gap-2">
+                                <span className="w-8 h-8 rounded-full border border-gray-300 flex-shrink-0" style={{ backgroundColor: resolveColorCode(color.name) }} />
                                 <input
-                                  type="color"
-                                  id={`color-pick-${idx}`}
-                                  value={resolveColorCode(assignment.color || '')}
-                                  onChange={(e) => updateAssignmentColor(assignment.url, nearestColorName(e.target.value))}
-                                  className="sr-only"
+                                  type="text"
+                                  value={color.name}
+                                  onChange={(e) => updateMatrixColor(idx, 'name', e.target.value)}
+                                  placeholder="e.g. Black"
+                                  className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-blue-500 outline-none"
                                 />
-                                <label
-                                  htmlFor={`color-pick-${idx}`}
-                                  className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-blue-200 bg-white text-[10px] font-black uppercase tracking-widest text-blue-700 hover:border-blue-500 hover:bg-blue-50 transition"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></svg>
-                                  Pick color from image
-                                </label>
                               </div>
-                              <span
-                                className="w-6 h-6 rounded-full border border-gray-300 shadow-sm flex-shrink-0"
-                                style={{ backgroundColor: resolveColorCode(assignment.color || '') }}
-                                title={assignment.color || 'No color yet'}
+                            </div>
+                            <div className="w-full md:w-1/2">
+                              <FileUpload
+                                label="Variant Image (Optional)"
+                                accept="image"
+                                value={color.imageUrl || ''}
+                                onChange={(url) => updateMatrixColor(idx, 'imageUrl', url)}
+                                placeholder="Image specifically for this color"
                               />
-                              <input
-                                type="text"
-                                value={assignment.color}
-                                onChange={(e) => updateAssignmentColor(assignment.url, e.target.value)}
-                                placeholder="Color name…"
-                                className="w-32 bg-white border border-blue-200 rounded-lg px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition hover:border-blue-400"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeAssignment(assignment.url)}
-                                className="ml-auto text-red-500 hover:bg-red-50 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition"
-                                title="Remove photo"
-                              >
-                                ✕ Remove
+                            </div>
+                            <div className="w-full md:w-auto self-end">
+                              <button type="button" onClick={() => removeMatrixColor(idx)} className="text-red-500 hover:text-red-700 text-xs font-bold py-2 outline-none">
+                                REMOVE
                               </button>
                             </div>
                           </div>
                         ))}
                       </div>
-                    )}
+                    </div>
 
-                    {matrixColors.length > 0 && (
-                      <div className="space-y-3 mt-4">
-                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                          Detected colors ({matrixColors.length}) — rename here or re-pick on any image
-                        </p>
-                        {matrixColors.map((color, idx) => (
-                          <div key={idx} className="flex flex-wrap items-center gap-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100 shadow-inner">
-                            <span
-                              className="w-5 h-5 rounded-full border border-gray-300 shadow-sm flex-shrink-0"
-                              style={{ backgroundColor: resolveColorCode(color.name) }}
-                              title={`${color.name} — dot shown to customers`}
-                            />
-                            <input
-                              type="text"
-                              value={color.name}
-                              onChange={(e) => renameColor(color.name, e.target.value)}
-                              className="font-black text-sm text-blue-900 uppercase tracking-widest bg-transparent border-b border-dashed border-blue-200 focus:border-blue-500 outline-none w-32"
-                              title="Rename color"
-                            />
-                            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full ${
-                              color.imageUrl || (color.images && color.images.trim().length > 0)
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-amber-100 text-amber-700'
-                            }`}>
-                              {color.imageUrl || (color.images && color.images.trim().length > 0)
-                                ? `${csvToArray(color.images || '').length} image${csvToArray(color.images || '').length === 1 ? '' : 's'}`
-                                : 'Video only'}
-                            </span>
-                            <div className="flex items-center gap-2 ml-auto">
-                              <label className="text-[10px] font-bold text-blue-600 uppercase">Video (optional)</label>
-                              <FileUpload
-                                label=""
-                                accept="video"
-                                value={color.videoUrl || ''}
-                                onChange={(url) => updateColorVideo(color.name, url)}
-                                placeholder="Add MP4 video"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeColor(color.name)}
-                              className="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition"
-                              title="Clear color from all its images"
-                            >
-                              ✕ Remove Color
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Step 2: Sizes */}
+                    {/* Step 2: Sizes */}
                   <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm">
                     <label className="block text-xs font-black text-blue-600 uppercase mb-2">Step 2: Add Sizes in Bulk</label>
                     <input
@@ -1153,10 +1036,11 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
                           Each variant uses its color image by default. Upload an override only when a specific size needs a different image.
                         </p>
                         <div className="mt-4 grid gap-4 md:grid-cols-2">
-                          {matrixColors.flatMap((color) => matrixSizeList.map((size) => {
+                          {matrixColors.flatMap((color, cIdx) => matrixSizeList.map((size, sIdx) => {
                             const key = `${color.name}-${size}`;
+                            const reactKey = `${key}-${cIdx}-${sIdx}`;
                             return (
-                              <div key={key} className="rounded-xl border border-gray-200 bg-white p-3">
+                              <div key={reactKey} className="rounded-xl border border-gray-200 bg-white p-3">
                                 <p className="mb-3 text-xs font-bold text-gray-800">{color.name} / {size}</p>
                                 <FileUpload
                                   label=""

@@ -1,37 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import './NewArrivals.css';
 
 const fallbackPlaceholders = [
-  { id: 1, title: 'Premium Comfort Collection', image: '/assets/shoe-2.jpeg' },
-  { id: 2, title: 'Everyday Essentials', image: '/assets/shoe-6.jpg' },
-  { id: 3, title: 'Signature Style', image: '/assets/shoe-7.jpeg' },
-  { id: 4, title: 'Modern Activewear', image: '/assets/sneaker-4.jpeg' },
+  { id: 1, image: '/assets/shoe-2.jpeg' },
+  { id: 2, image: '/assets/shoe-6.jpg' },
+  { id: 3, image: '/assets/shoe-7.jpeg' },
+  { id: 4, image: '/assets/sneaker-4.jpeg' },
 ];
 
 export default function NewArrivals({ setCurrentPage }) {
-  const [products, setProducts] = useState(fallbackPlaceholders);
-
-  useEffect(() => {
-    const fetchNewArrivals = async () => {
-      try {
-        const response = await fetch('/api/products?limit=4&sort=newest');
-        const data = await response.json();
-        if (response.ok && data.data && data.data.length >= 4) {
-          setProducts(data.data.slice(0, 4).map(p => ({
-            id: p.id,
-            title: p.title || 'Premium Style',
-            image: (p.images && p.images[0]) || fallbackPlaceholders[0].image
-          })));
-        }
-      } catch (err) {
-        console.error('Failed to fetch new arrivals', err);
-      }
-    };
-    fetchNewArrivals();
-  }, []);
+  // Directly use the initialized static array without fetching/overriding
+  const products = fallbackPlaceholders;
 
   return (
     <section className="new-arrivals-section">

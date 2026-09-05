@@ -36,7 +36,7 @@ export default function SaleBanner({ banner }: { fullWidth?: boolean; banner?: B
             alt={eventName}
             fill
             className="object-cover transition-all duration-1000"
-          />
+           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
         </div>
         <div className={`flex flex-col justify-center p-12 lg:p-24 space-y-6 bg-white ${banner?.textPosition === 'OUTSIDE_LEFT' ? 'order-1' : 'order-2'}`}>
           <ScrollAnimate animation="slide-in-right">
@@ -63,7 +63,7 @@ export default function SaleBanner({ banner }: { fullWidth?: boolean; banner?: B
           alt={eventName}
           fill
           className="object-cover"
-        />
+         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-purple-950/15" />
         <div className="absolute inset-0 flex flex-col justify-end p-8 text-center space-y-3">
           <ScrollAnimate animation="fade-in">

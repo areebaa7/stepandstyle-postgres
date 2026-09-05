@@ -112,10 +112,21 @@ export function uploadSecurityResponse(error: unknown) {
 export function isTrustedReceiptUrl(value: string) {
   try {
     const url = new URL(value);
+    
+    // Check Supabase 'step-and-styl-uploads' or 'receipts'
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://msabiymjxqvdpxeddxbe.supabase.co';
+    if (value.startsWith(supabaseUrl + '/storage/v1/object/public/')) {
+      return true;
+    }
+    
+    // Check legacy Cloudinary
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
-    if (!cloudName || url.protocol !== 'https:' || url.hostname !== 'res.cloudinary.com') return false;
-    const prefix = `/${cloudName}/image/upload/`;
-    return url.pathname.startsWith(prefix) && url.pathname.includes('/step-and-style/receipts/');
+    if (cloudName && url.protocol === 'https:' && url.hostname === 'res.cloudinary.com') {
+      const prefix = `/${cloudName}/image/upload/`;
+      return url.pathname.startsWith(prefix) && (url.pathname.includes('/receipts/') || url.pathname.includes('/step-and-style/'));
+    }
+    
+    return false;
   } catch {
     return false;
   }

@@ -25,7 +25,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSucce
     return acc + cleanPrice * (item.quantity || 1);
   }, 0);
 
-  const shippingCost = 0; // Free delivery as per your banner
+  const shippingCost = 0; // Free delivery
   const total = subtotal + shippingCost;
 
   const handleCheckoutSubmit = async (e) => {
@@ -51,7 +51,6 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSucce
             price: Number(String(item.price).replace(/[^0-9.]/g, '')),
             quantity: item.quantity || 1,
             size: item.selectedSize,
-            color: item.selectedColor,
           })),
         }),
       });
@@ -86,7 +85,7 @@ export default function CheckoutModal({ isOpen, onClose, cartItems, onOrderSucce
         ) : (
           <form onSubmit={handleCheckoutSubmit} className="checkout-form">
             <h2>Checkout & Shipping Details</h2>
-            <p className="checkout-sub">🎉 Free Delivery & Open Parcel (Inspect Before Paying) Enabled</p>
+            <p className="checkout-sub">Open Parcel Then Pay enabled on all orders!</p>
 
             {error && <div className="checkout-error">{error}</div>}
 

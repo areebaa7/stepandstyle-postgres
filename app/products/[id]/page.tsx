@@ -19,15 +19,7 @@ import { Heart } from 'lucide-react';
 import { useWishlist } from '@/app/context/WishlistContext';
 import * as fpixel from '@/lib/fpixel';
 
-const variantHasMedia = (variant: ProductVariant) =>
-  Boolean(
-    variant.imageUrl ||
-      variant.videoUrl ||
-      (Array.isArray(variant.images) && variant.images.length > 0),
-  );
 
-const colorHasMedia = (variants: ProductVariant[] | undefined, color: string) =>
-  Boolean(variants?.some((variant) => variant.color === color && variantHasMedia(variant)));
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -74,7 +66,7 @@ export default function ProductDetailPage() {
         // Only expose colors that have their own media (image/video) so customers
         // never see a fallback photo of a different color.
         const colors = Array.from(new Set(loadedProduct.variants?.map((variant) => variant.color) || []))
-          .filter((color) => Boolean(color) && colorHasMedia(loadedProduct.variants, color));
+          .filter((color) => Boolean(color));
         const initialColor = colors.find((color) => loadedProduct.variants?.some(
           (variant) => variant.color === color && variant.stock > 0,
         )) || colors[0] || '';
@@ -234,6 +226,14 @@ export default function ProductDetailPage() {
   };
 
   const handleAddToCart = () => {
+    if (availableSizes.length > 0 && !selectedSize) {
+      alert('Please select a size for ' + product.title + '.');
+      return;
+    }
+    if (availableColors.length > 0 && !selectedColor) {
+      alert('Please select a color for ' + product.title + '.');
+      return;
+    }
     if (!canAddToCart) return;
 
     setIsAddingToCart(true);
@@ -275,6 +275,14 @@ export default function ProductDetailPage() {
   };
   
   const handleBuyNow = () => {
+    if (availableSizes.length > 0 && !selectedSize) {
+      alert('Please select a size for ' + product.title + '.');
+      return;
+    }
+    if (availableColors.length > 0 && !selectedColor) {
+      alert('Please select a color for ' + product.title + '.');
+      return;
+    }
     if (!canAddToCart) return;
 
     const finalPrice = product.discount && product.discount > 0 
@@ -315,7 +323,7 @@ export default function ProductDetailPage() {
     });
 
   const availableColors = Array.from(new Set(product.variants?.map((v) => v.color) || []))
-    .filter((color) => Boolean(color) && colorHasMedia(product.variants, color));
+    .filter((color) => Boolean(color));
 
   const selectedVariant = product.variants?.find(
     (v) =>
@@ -600,7 +608,7 @@ export default function ProductDetailPage() {
             <div className="space-y-4 pt-4">
               <button
                 onClick={handleAddToCart}
-                disabled={!canAddToCart || isAddingToCart}
+                disabled={!product.inStock || isAdminUser || isCheckingUser || isAddingToCart}
                 className={`w-full py-4 sm:py-5 border-2 font-semibold  tracking-wide sm:tracking-wide text-xs transition-all duration-500 active:scale-[0.98] ${
                   !canAddToCart
                     ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
@@ -624,7 +632,7 @@ export default function ProductDetailPage() {
               </button>
               <button
                 onClick={handleBuyNow}
-                disabled={!canAddToCart}
+                disabled={!product.inStock || isAdminUser || isCheckingUser}
                 className={`w-full py-4 sm:py-5 font-semibold  tracking-wide sm:tracking-wide text-xs transition-all duration-500 shadow-xl active:scale-[0.98] ${
                   !canAddToCart
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'

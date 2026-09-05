@@ -41,12 +41,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate slug from title
-    const slug = title
+    // Generate base slug from title
+    let slug = title
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-');
+
+    // Check if slug already exists to prevent 409/Unique constraint conflicts
+    const existingSlug = await prisma.blog.findUnique({
+      where: { slug },
+    });
+
+    if (existingSlug) {
+      // Append a unique random suffix if the slug already exists
+      slug = `${slug}-${Math.random().toString(36).substring(2, 7)}`;
+    }
 
     const blog = await prisma.blog.create({
       data: {
@@ -68,10 +78,10 @@ export async function POST(req: NextRequest) {
       success: true,
       data: blog,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating blog:', error);
     return NextResponse.json(
-      { error: 'Failed to create blog' },
+      { error: error.message || 'Failed to create blog' },
       { status: 500 },
     );
   }

@@ -131,7 +131,7 @@ export default function FileUpload({ value, onChange, accept, label, placeholder
                 fill
                 className="object-contain"
                 unoptimized
-              />
+               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
             </div>
           ) : (
             <video

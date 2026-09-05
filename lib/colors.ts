@@ -97,7 +97,7 @@ export function nearestColorName(hex: string): string {
       bestName = name;
     }
   });
-  return bestDistance <= 25 * 25 * 3 ? titleCase(bestName) : hex.toUpperCase();
+  return titleCase(bestName);
 }
 
 /**
@@ -111,4 +111,18 @@ export function resolveColorCode(color: string): string {
   if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(normalized)) return normalized;
   if (COLOR_MAP[normalized]) return COLOR_MAP[normalized];
   return FALLBACK_PALETTE[hashCode(normalized) % FALLBACK_PALETTE.length];
+}
+
+
+/**
+ * Returns a friendly, human-readable color name.
+ * If the input is a hex code, it maps it to the nearest known name.
+ */
+export function getFriendlyColorName(color: string): string {
+  if (!color) return '';
+  const normalized = color.trim();
+  if (normalized.startsWith('#')) {
+    return nearestColorName(normalized);
+  }
+  return titleCase(normalized);
 }

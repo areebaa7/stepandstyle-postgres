@@ -267,7 +267,7 @@ export default function AdminSplashScreenPanel() {
                     fill
                     className="object-contain drop-shadow-xl"
                     unoptimized={!settings.imageUrl.startsWith('/')}
-                  />
+                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                 </div>
               )}
               {settings.title && (

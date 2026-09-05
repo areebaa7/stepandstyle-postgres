@@ -35,7 +35,8 @@ export default function WomenShopPage({ onAddToCart }) {
         return (item.category || "").toLowerCase().includes(sub) || 
                (item.title || "").toLowerCase().includes(sub) || 
                (item.description || "").toLowerCase().includes(sub) || 
-               (item.shortDescription || "").toLowerCase().includes(sub);
+               (item.shortDescription || "").toLowerCase().includes(sub) ||
+               (item.collection || "").toLowerCase().includes(sub);
       });
 
   const itemsPerPage = 8;

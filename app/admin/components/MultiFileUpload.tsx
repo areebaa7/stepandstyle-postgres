@@ -147,7 +147,7 @@ export default function MultiFileUpload({ value, onChange, label, placeholder, t
                 fill
                 className="object-cover"
                 unoptimized
-              />
+               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
               {thumbnailOverlay && (
                 <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-[1px] px-1 py-1">
                   {thumbnailOverlay(url)}

@@ -1,0 +1,13 @@
+/* DynamicSaleBanner.css */
+.group {
+  will-change: transform;
+}
+
+.group img {
+  backface-visibility: hidden;
+}
+
+/* Subtle glow effect on hover for cards */
+.group:hover {
+  box-shadow: 0 20px 30px -10px rgba(168, 85, 247, 0.12);
+}

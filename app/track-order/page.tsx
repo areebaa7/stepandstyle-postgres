@@ -209,7 +209,7 @@ export default function TrackOrderPage() {
                     <div key={idx} className="py-4 flex items-center gap-4">
                       <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100">
                         {item.image || item.imageUrl ? (
-                          <Image src={item.image || item.imageUrl} alt={item.name || 'Product'} fill className="object-cover" />
+                          <Image src={item.image || item.imageUrl} alt={item.name || 'Product'} fill className="object-cover"  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Image</div>
                         )}
