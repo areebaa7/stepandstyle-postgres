@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { authRateLimitHeaders, consumeAuthRateLimit, getAuthClientAddress } from '@/lib/authRateLimit';
 import { assertRequestSize, MAX_RECEIPT_BYTES, uploadSecurityResponse, validateUploadFile } from '@/lib/uploadSecurity';
 
-// Explicitly use your provided Supabase configuration parameters
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://msabiymjxqvdpxeddxbe.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_Q5C_SSnDN-cY6MoacYw7kg_zw9KVfEZ';
-
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,31 +29,29 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 8);
     const fileName = `${timestamp}-${randomString}.${ext}`;
-    
-    // Explicitly target your public bucket
     const targetBucket = 'step-and-styl-uploads';
 
-    const { data, error } = await supabase.storage
-      .from(targetBucket)
-      .upload(fileName, validated.buffer, {
-        contentType: file.type || 'image/png',
-        upsert: true
-      });
+    // Upload directly using standard fetch (No npm package required)
+    const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/${targetBucket}/${fileName}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': supabaseKey,
+        'Content-Type': file.type || 'image/png',
+        'x-upsert': 'true'
+      },
+      body: validated.buffer
+    });
 
-    if (error) {
-      console.error('Supabase storage upload error details:', error);
-      return NextResponse.json({ success: false, error: `Supabase Storage Error: ${error.message}` }, { status: 500 });
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      console.error('Supabase REST upload error:', errText);
+      return NextResponse.json({ success: false, error: `Supabase Storage Error: ${uploadRes.statusText}` }, { status: 500 });
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from(targetBucket)
-      .getPublicUrl(data.path);
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${targetBucket}/${fileName}`;
 
-    if (!publicUrlData || !publicUrlData.publicUrl) {
-      return NextResponse.json({ success: false, error: 'Failed to generate public URL.' }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, url: publicUrlData.publicUrl }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ success: true, url: publicUrl }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error: any) {
     const securityResponse = uploadSecurityResponse(error);
     if (securityResponse) return securityResponse;
