@@ -9,7 +9,6 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "postinstall": "prisma generate",
     "demo:seed": "node scripts/seed-demo-content.mjs",
     "demo:polish": "node scripts/polish-demo-content.mjs",
     "demo:clear": "node scripts/clear-demo-content.mjs",
