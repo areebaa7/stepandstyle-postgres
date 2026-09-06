@@ -3,7 +3,7 @@ import { authRateLimitHeaders, consumeAuthRateLimit, getAuthClientAddress } from
 import { assertRequestSize, MAX_RECEIPT_BYTES, uploadSecurityResponse, validateUploadFile } from '@/lib/uploadSecurity';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://msabiymjxqvdpxeddxbe.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_Q5C_SSnDN-cY6MoacYw7kg_zw9KVfEZ';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_Q5C_SSnDN-cY6MoacYw7kg_zw9KVfEZ';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +25,9 @@ export async function POST(request: NextRequest) {
 
     const validated = await validateUploadFile(file, { allowImages: true, allowVideos: false, imageMaxBytes: MAX_RECEIPT_BYTES, receipt: true });
     
+    // Defensive buffer extraction to prevent any runtime body type mismatch
+    const fileBuffer = (validated as any)?.buffer || validated;
+
     const ext = file.name.split('.').pop() || 'png';
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 8);
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': file.type || 'image/png',
         'x-upsert': 'true'
       },
-      body: validated.buffer
+      body: fileBuffer
     });
 
     if (!uploadRes.ok) {
