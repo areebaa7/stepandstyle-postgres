@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+﻿import { Prisma } from '@prisma/client';
 import prisma from './prisma';
 import type { Product } from '@prisma/client';
 import type { ProductDTO } from '@/types/product';
@@ -26,7 +26,8 @@ export function serializeProduct(product: any): ProductDTO {
   return {
     id: product.id,
     slug: product.slug,
-    category: product.category || 'ALL',
+    category: (product.category || 'casual').toLowerCase().trim(),
+    gender: (product.gender || 'men').toLowerCase().trim(),
     title: product.title,
     description: product.description,
     shortDescription: product.shortDescription,
@@ -48,7 +49,7 @@ export function serializeProduct(product: any): ProductDTO {
       slug: product.collection.slug,
       description: product.collection.description,
       image: product.collection.image,
-      targetGender: product.collection.targetGender ?? 'UNISEX',
+      targetGender: product.collection.targetGender ? product.collection.targetGender.toLowerCase() : 'unisex',
       createdAt: product.collection.createdAt.toISOString(),
       updatedAt: product.collection.updatedAt.toISOString(),
     } : null,

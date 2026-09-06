@@ -75,8 +75,25 @@ export function parseProductPayload(
     }
   }
 
-  if (body.category !== undefined) {
-    data.category = String(body.category).trim() || 'ALL';
+  // Robustly handle gender parsing without overwriting with hardcoded defaults
+  if (body.gender !== undefined && body.gender !== null) {
+    const cleanGender = String(body.gender).trim().toLowerCase();
+    if (['men', 'women', 'kids'].includes(cleanGender)) {
+      data.gender = cleanGender;
+    } else {
+      data.gender = 'men';
+    }
+  } else if (!allowPartial) {
+    data.gender = 'men';
+  }
+
+  // Robustly handle category parsing matching the selected section without cross-defaults
+  if (body.category !== undefined && body.category !== null) {
+    const cleanCategory = String(body.category).trim().toLowerCase();
+    const defaultCat = data.gender === 'women' ? 'casual' : data.gender === 'kids' ? 'kids' : 'sneakers';
+    data.category = cleanCategory || defaultCat;
+  } else if (!allowPartial) {
+    data.category = data.gender === 'women' ? 'casual' : data.gender === 'kids' ? 'kids' : 'sneakers';
   }
 
   const requiredFields: Array<{

@@ -14,7 +14,7 @@ import AdminPagination from './AdminPagination';
 const PRODUCTS_PAGE_SIZE = 12;
 
 interface ProductFormState {
-  slug: string; category: string;
+  slug: string; category: string; gender: string; colors: string[];
   title: string;
   collectionId: string;
   price: string;
@@ -75,9 +75,8 @@ const SIZE_PRESETS = [
   { label: 'Apparel S–XL', value: 'S, M, L, XL' },
 ];
 
-
 const defaultFormState: ProductFormState = {
-  slug: '', category: 'ALL',
+  slug: '', category: 'sneakers', gender: 'men', colors: [],
   title: '',
   collectionId: '',
   price: '',
@@ -164,24 +163,28 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
   const [matrixVariantImages, setMatrixVariantImages] = useState<Record<string, string>>({});
   const [bulkStock, setBulkStock] = useState('');
   const matrixSizeList = useMemo(() => Array.from(new Set(csvToArray(matrixSizes))), [matrixSizes]);
-  const coverAssignment = imageAssignments.find((a) => a.url === formValues.image);
+
   const availableCollections = useMemo(() => {
     const usedIds = new Set(products.map((product) => product.collectionId).filter(Boolean));
     return collections.filter((collection) => usedIds.has(collection.id)).sort((left, right) => left.name.localeCompare(right.name));
   }, [collections, products]);
+
   const availableGenders = useMemo(() => Array.from(new Set(
     products.map((product) => product.collection?.targetGender).filter((value): value is NonNullable<typeof value> => Boolean(value)),
   )).sort(), [products]);
+
   const availableStockFilters = useMemo(() => [
     ...(products.some((product) => product.inStock) ? [{ value: 'IN_STOCK', label: 'In stock' }] : []),
     ...(products.some((product) => !product.inStock) ? [{ value: 'OUT_OF_STOCK', label: 'Out of stock' }] : []),
   ], [products]);
+
   const availableFeatureFilters = useMemo(() => [
     ...(products.some((product) => Boolean(product.discount && product.discount > 0)) ? [{ value: 'DISCOUNTED', label: 'Discounted' }] : []),
     ...(products.some((product) => product.isNew) ? [{ value: 'NEW', label: 'New arrivals' }] : []),
     ...(products.some((product) => product.isTrending) ? [{ value: 'TRENDING', label: 'Trending' }] : []),
     ...(products.some((product) => !product.variants?.length) ? [{ value: 'NO_VARIANTS', label: 'Without variants' }] : []),
   ], [products]);
+
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     const list = products.filter((product) => {
@@ -213,6 +216,7 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
       return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
     });
   }, [collectionFilter, featureFilter, genderFilter, products, search, sort, stockFilter]);
+
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const paginatedProducts = filteredProducts.slice(
@@ -270,8 +274,6 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
   }, []);
 
   useEffect(() => {
-    // Initial catalog synchronization for this admin panel.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProducts();
     fetchCollections();
   }, [fetchCollections, fetchProducts]);
@@ -293,8 +295,16 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
   const openEditModal = (product: ProductDTO) => {
     setModalMode('edit');
     setSelectedProduct(product);
+    
+    // Explicitly parse and normalize gender and category without cross-contamination
+    const rawGender = (product as any).gender ? String((product as any).gender).toLowerCase().trim() : 'men';
+    const rawCategory = product.category ? String(product.category).toLowerCase().trim() : (rawGender === 'kids' ? 'kids' : 'sneakers');
+
     setFormValues({
-      slug: product.slug, category: product.category || 'ALL',
+      slug: product.slug, 
+      category: rawCategory, 
+      gender: rawGender, 
+      colors: product.colors || [],
       title: product.title,
       collectionId: product.collectionId ?? '',
       price: String(product.price),
@@ -366,8 +376,6 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
     setStatus({ type: 'idle', message: '' });
   };
 
-
-
   const handleInputChange = (key: keyof ProductFormState, value: string | boolean) => {
     setFormValues((prev) => ({
       ...prev,
@@ -375,7 +383,6 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
     }));
   };
 
-  
   const addMatrixColor = () => setMatrixColors([...matrixColors, { name: '' }]);
   const updateMatrixColor = (index: number, key: keyof MatrixColor, value: string) => {
     const next = [...matrixColors];
@@ -430,8 +437,13 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
         });
       });
 
+      const resolvedColors = matrixColors.map(c => c.name.trim()).filter(Boolean);
+
       const payload = {
-        slug: formValues.slug, category: formValues.category || 'ALL',
+        slug: formValues.slug,
+        gender: (formValues.gender || 'men').toLowerCase().trim(),
+        category: (formValues.category || (formValues.gender === 'kids' ? 'kids' : 'sneakers')).toLowerCase().trim(),
+        colors: resolvedColors,
         title: formValues.title,
         collectionId: formValues.collectionId || null,
         description: formValues.description,
@@ -724,20 +736,46 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
+                      <label className="block text-xs font-black text-purple-600 uppercase tracking-widest mb-1.5">Target Section (Gender) *</label>
+                      <select
+                        value={formValues.gender || 'men'}
+                        onChange={(e) => handleInputChange('gender', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-400 focus:bg-white outline-none transition-all appearance-none bg-no-repeat bg-right pr-10 hover:border-slate-400"
+                        style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23475569\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundSize: '1.5em' }}
+                      >
+                        <option value="men">Men</option>
+                        <option value="women">Women</option>
+                        <option value="kids">Kids</option>
+                      </select>
+                    </div>
+
+                    <div>
                       <label className="block text-xs font-black text-purple-600 uppercase tracking-widest mb-1.5">Category *</label>
                       <select
-                        value={formValues.category || 'ALL'}
+                        value={formValues.category || 'sneakers'}
                         onChange={(e) => handleInputChange('category', e.target.value)}
                         className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-purple-400 focus:bg-white outline-none transition-all appearance-none bg-no-repeat bg-right pr-10 hover:border-slate-400"
                         style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%23475569\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundSize: '1.5em' }}
                       >
-                        <option value="ALL">All / Unisex</option>
-                        <option value="WOMEN">Women</option>
-                        <option value="MEN">Men</option>
-                        <option value="KIDS">Kids</option>
+                        {formValues.gender === 'women' ? (
+                          <>
+                            <option value="casual">Casual</option>
+                            <option value="bridal">Bridal</option>
+                            <option value="formal">Formal</option>
+                          </>
+                        ) : formValues.gender === 'kids' ? (
+                          <option value="kids">Kids</option>
+                        ) : (
+                          <>
+                            <option value="sneakers">Sneakers</option>
+                            <option value="formal">Formal</option>
+                            <option value="casual">Casual</option>
+                          </>
+                        )}
                       </select>
                     </div>
-                    <div>
+
+                    <div className="md:col-span-2">
                       <label className="block text-xs font-black text-purple-600 uppercase tracking-widest mb-1.5">Display Name *</label>
                       <input
                         type="text"
@@ -815,7 +853,6 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
-                  
                   <div className="flex flex-col sm:flex-row gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <label className="flex items-center gap-3 cursor-pointer group">
                       <div className="relative flex items-center">
@@ -844,8 +881,6 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
                     )}
                   </div>
                 </div>
-
-                
 
                 <div>
                   <label className="block text-xs font-black text-purple-600 uppercase tracking-widest mb-1.5">Tagline / Short Description *</label>
@@ -879,7 +914,6 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
                   <p className="-mt-3 text-xs leading-5 text-blue-700/80">
                     Upload your product images first, then use the eyedropper on each image to sample its exact color — the dot and color name are set automatically. Add sizes once, and every color × size combination gets its own stock.
                   </p>
-                  
                   
                     {/* Step 1: Product Images */}
                     <div className="bg-white p-4 rounded-xl border border-blue-100 space-y-4 shadow-sm">
@@ -926,7 +960,7 @@ export default function AdminProductsPanel({ onProductsCountChange }: AdminProdu
                                   type="text"
                                   value={color.name}
                                   onChange={(e) => updateMatrixColor(idx, 'name', e.target.value)}
-                                  placeholder="e.g. Black"
+                                  placeholder="e.g. Black or #a52a2a"
                                   className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:ring-blue-500 outline-none"
                                 />
                               </div>

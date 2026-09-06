@@ -46,17 +46,27 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get('sort');
     const search = searchParams.get('search');
     const category = searchParams.get('category');
+    const gender = searchParams.get('gender');
 
     const where: any = {};
-    if (category && category !== 'ALL') {
-      where.category = category.toUpperCase();
+    
+    // Strict gender filtering (handles lowercase/uppercase safely)
+    if (gender && gender !== 'ALL') {
+      where.gender = { equals: gender.toLowerCase().trim(), mode: 'insensitive' };
     }
+    
+    if (category && category !== 'ALL') {
+      where.category = { equals: category.toLowerCase().trim(), mode: 'insensitive' };
+    }
+    
     if (collectionSlug) {
       where.collection = { slug: { equals: collectionSlug, mode: 'insensitive' } };
     }
     if (collectionId) {
       where.collectionId = collectionId;
     }
+    
+    // Handled dynamically below or via database flag
     if (inStock === 'true') {
       where.inStock = true;
     } else if (inStock === 'false') {
@@ -128,6 +138,7 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
+        ...(where.OR || []),
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
         { shortDescription: { contains: search, mode: 'insensitive' } },
@@ -155,23 +166,29 @@ export async function GET(request: NextRequest) {
       include: { collection: true },
     });
 
-    // Ensure serialized items include explicit sizes & colors arrays for frontend rendering
+    // Format products and dynamically sync stock status based on variants
     const formattedData = products.map((product) => {
       const baseSerialized = serializeProduct(product);
       
-      // Extract sizes safely from variants or specification fields if missing in serializer
+      const variants = Array.isArray(product.variants) ? (product.variants as any[]) : [];
+      const totalStock = variants.reduce((sum, v) => sum + Math.max(0, Number(v.stock) || 0), 0);
+      
+      // If variants exist and total stock is 0, force inStock to false
+      const computedInStock = variants.length > 0 ? totalStock > 0 : product.inStock;
+
       let parsedSizes = (product as any).sizes;
       if (!parsedSizes || !Array.isArray(parsedSizes) || parsedSizes.length === 0) {
-        if (Array.isArray(product.variants)) {
-          parsedSizes = product.variants.map((v: any) => v.size).filter(Boolean);
+        if (variants.length > 0) {
+          parsedSizes = variants.map((v: any) => v.size).filter(Boolean);
         }
       }
       if (!parsedSizes || parsedSizes.length === 0) {
-        parsedSizes = ['36', '37', '38', '39', '40', '41', '42']; // Safe footwear default
+        parsedSizes = ['36', '37', '38', '39', '40', '41', '42'];
       }
 
       return {
         ...baseSerialized,
+        inStock: computedInStock,
         sizes: parsedSizes,
         colors: Array.isArray(product.colors) && product.colors.length > 0 ? product.colors : ['#1F2937'],
         images: Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image].filter(Boolean),
@@ -216,7 +233,8 @@ export async function POST(request: NextRequest) {
     const product = await prisma.product.create({
       data: {
         slug: data.slug!,
-        category: data.category || 'ALL',
+        category: data.category || 'casual',
+        gender: data.gender || 'men',
         title: data.title!,
         description: data.description!,
         shortDescription: data.shortDescription!,

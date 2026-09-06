@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ProductDetail from './ProductDetail';
-import { fetchProducts } from './utils/shopApi';// Updated to point to your backend API helper
+import { fetchProducts } from './utils/shopApi';
 import './ShopPage.css';
 
 export default function MenShopPage({ onAddToCart }) {
@@ -17,9 +17,10 @@ export default function MenShopPage({ onAddToCart }) {
     let isMounted = true;
     async function loadData() {
       setLoading(true);
-      const fetched = await fetchProducts('MEN');
+      // Explicitly pass query parameter 'men' to the API so backend filters strictly
+      const fetched = await fetchProducts('men');
       if (isMounted) {
-        setProducts(fetched);
+        setProducts(Array.isArray(fetched) ? fetched : []);
         setLoading(false);
       }
     }
@@ -27,16 +28,19 @@ export default function MenShopPage({ onAddToCart }) {
     return () => { isMounted = false; };
   }, []);
 
-  const strictMenProducts = products.filter(item => (item.category || '').toUpperCase() === 'MEN');
+  // Strict isolation for Men products only on frontend as a backup safeguard
+  const strictMenProducts = products.filter(item => {
+    const g = (item.gender || '').toLowerCase().trim();
+    return g === 'men' || g === 'male';
+  });
+
+  // Flexible subcategory filtering handling singular/plural mismatches (e.g. 'sneaker' vs 'sneakers')
   const filtered = activeSubcategory === 'all'
     ? strictMenProducts
     : strictMenProducts.filter(item => {
-        const sub = activeSubcategory.toLowerCase();
-        return (item.category || "").toLowerCase().includes(sub) || 
-               (item.title || "").toLowerCase().includes(sub) || 
-               (item.description || "").toLowerCase().includes(sub) || 
-               (item.shortDescription || "").toLowerCase().includes(sub) ||
-               (item.collection || "").toLowerCase().includes(sub);
+        const itemCategory = (item.category || '').toLowerCase().trim();
+        const targetSub = activeSubcategory.toLowerCase().trim();
+        return itemCategory === targetSub || itemCategory.startsWith(targetSub);
       });
 
   const itemsPerPage = 6;
@@ -99,31 +103,53 @@ export default function MenShopPage({ onAddToCart }) {
         <div style={{ textAlign: 'center', padding: '4rem', color: '#6B7280' }}>No products found in this category. Add them in your admin panel!</div>
       ) : (
         <div className="shop-products-grid">
-          {paginatedProducts.map((product, index) => (
-            <motion.div 
-              key={product.id}
-              className="shop-product-card"
-              onClick={() => setSelectedProduct(product)}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.05 }}
-            >
-              <div className="shop-image-box">
-                {product.discount && <span className="shop-discount-tag">{product.discount}</span>}
-                <img src={product.image} alt={product.title} />
-              </div>
-              <div className="shop-color-swatches">
-                {product.colors.map((hex, idx) => (
-                  <span key={idx} className="shop-swatch-dot" style={{ backgroundColor: hex || '#1F2937' }} />
-                ))}
-              </div>
-              <h3 className="shop-product-title">{product.title}</h3>
-              <div className="shop-pricing-box">
-                {product.formattedOriginalPrice && <span className="shop-original-price">{product.formattedOriginalPrice}</span>}
-                <span className="shop-sale-price">{product.formattedPrice}</span>
-              </div>
-            </motion.div>
-          ))}
+          {paginatedProducts.map((product, index) => {
+            // Check explicit stock flag OR calculate if all variant stocks total 0
+            const variants = Array.isArray(product.variants) ? product.variants : [];
+            const totalStock = variants.reduce((sum, v) => sum + Math.max(0, Number(v.stock) || 0), 0);
+            const isOutOfStock = product.inStock === false || (variants.length > 0 && totalStock === 0);
+
+            return (
+              <motion.div 
+                key={product.id}
+                className="shop-product-card relative cursor-pointer"
+                onClick={() => setSelectedProduct(product)}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.05 }}
+              >
+                <div className="shop-image-box relative overflow-hidden">
+                  {product.discount && !isOutOfStock && <span className="shop-discount-tag">{product.discount}</span>}
+                  
+                  {/* Out of Stock / Sold Out Badge */}
+                  {isOutOfStock && (
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center z-10">
+                      <span className="bg-black text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 shadow-md">
+                        Sold Out
+                      </span>
+                    </div>
+                  )}
+
+                  <img 
+                    src={product.image || '/logo_main.png'} 
+                    alt={product.title} 
+                    className={isOutOfStock ? 'opacity-50 grayscale-[25%]' : ''} 
+                  />
+                </div>
+
+                <div className="shop-color-swatches">
+                  {Array.isArray(product.colors) && product.colors.map((hex, idx) => (
+                    <span key={idx} className="shop-swatch-dot" title={hex} style={{ backgroundColor: hex || '#1F2937' }} />
+                  ))}
+                </div>
+                <h3 className="shop-product-title">{product.title}</h3>
+                <div className="shop-pricing-box">
+                  {product.formattedOriginalPrice && <span className="shop-original-price">{product.formattedOriginalPrice}</span>}
+                  <span className="shop-sale-price">{product.formattedPrice}</span>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       )}
 

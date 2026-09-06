@@ -221,7 +221,8 @@ enum AffiliateApplicationStatus {
 model Product {
   id               String      @id @default(cuid())
   slug             String      @unique
-  category         String      @default("ALL")
+  category         String      @default("casual")
+  gender           String      @default("men")
   title            String
   description      String
   shortDescription String

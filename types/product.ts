@@ -25,6 +25,7 @@ export interface ProductDTO {
   id: string;
   slug: string;
   category: string;
+  gender: string;
   title: string;
   description: string;
   shortDescription: string;
@@ -53,6 +54,7 @@ export interface ProductDTO {
 export interface ProductPayload {
   slug?: string;
   category?: string;
+  gender?: string;
   title?: string;
   description?: string;
   shortDescription?: string;

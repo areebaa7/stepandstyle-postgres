@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ProductDetail from './ProductDetail';
-// Adjust this import path depending on where your shopApi file is saved (e.g. '../../lib/shopApi' or similar)
 import { fetchProducts } from './utils/shopApi';
 import './ShopPage.css';
 
@@ -28,7 +27,11 @@ export default function KidsShopPage({ onAddToCart }) {
   }, []);
 
   const itemsPerPage = 6;
-  const strictKidsProducts = products.filter(item => (item.category || '').toUpperCase() === 'KIDS');
+  const strictKidsProducts = products.filter(item => 
+    (item.gender || '').toLowerCase() === 'kids' || 
+    (item.category || '').toLowerCase() === 'kids'
+  );
+
   const totalPages = Math.ceil(strictKidsProducts.length / itemsPerPage) || 1;
   const paginatedProducts = strictKidsProducts.slice((currentPageNum - 1) * itemsPerPage, currentPageNum * itemsPerPage);
 
@@ -55,14 +58,14 @@ export default function KidsShopPage({ onAddToCart }) {
 
       <div className="shop-filter-bar">
         <p className="results-count">
-          Showing {products.length > 0 ? (currentPageNum - 1) * itemsPerPage + 1 : 0}–{Math.min(currentPageNum * itemsPerPage, products.length)} of {products.length} results
+          Showing {strictKidsProducts.length > 0 ? (currentPageNum - 1) * itemsPerPage + 1 : 0}–{Math.min(currentPageNum * itemsPerPage, strictKidsProducts.length)} of {strictKidsProducts.length} results
         </p>
         <div className="filter-dropdown-btn"><span>Default sorting</span></div>
       </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '4rem', color: '#6B7280' }}>Loading collection...</div>
-      ) : products.length === 0 ? (
+      ) : strictKidsProducts.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '4rem', color: '#6B7280' }}>No kids' products available yet. Add them in your admin panel!</div>
       ) : (
         <div className="shop-products-grid">
@@ -81,7 +84,7 @@ export default function KidsShopPage({ onAddToCart }) {
               </div>
               <div className="shop-color-swatches">
                 {product.colors.map((colorName, idx) => (
-                  <span key={idx} className="shop-swatch-dot" title={colorName} style={{ backgroundColor: '#1F2937' }} />
+                  <span key={idx} className="shop-swatch-dot" title={colorName} style={{ backgroundColor: colorName || '#1F2937' }} />
                 ))}
               </div>
               <h3 className="shop-product-title">{product.title}</h3>
