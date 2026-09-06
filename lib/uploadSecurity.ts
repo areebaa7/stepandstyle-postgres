@@ -112,16 +112,15 @@ export function uploadSecurityResponse(error: unknown) {
 export function isTrustedReceiptUrl(value: string) {
   try {
     const url = new URL(value);
-    
-    
-    
-    // Check legacy Cloudinary
+
+    // Check Cloudinary securely
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
     if (cloudName && url.protocol === 'https:' && url.hostname === 'res.cloudinary.com') {
       const prefix = `/${cloudName}/image/upload/`;
-      return url.pathname.startsWith(prefix) && (url.pathname.includes('/receipts/') || url.pathname.includes('/step-and-style/'));
+      // Accepts any image uploaded to your Cloudinary cloud account
+      return url.pathname.startsWith(prefix);
     }
-    
+
     return false;
   } catch {
     return false;
