@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { UploadApiResponse } from 'cloudinary';
-import cloudinary from '@/lib/cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
+
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
 import { verifyAdminRequest } from '@/lib/auth';
 import { assertRequestSize, MAX_ADMIN_IMAGE_BYTES, uploadSecurityResponse, validateUploadFile } from '@/lib/uploadSecurity';
 
@@ -15,7 +22,7 @@ export async function POST(request: NextRequest) {
     const result = await new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         { folder: 'step-and-style/blogs', resource_type: 'image', use_filename: false, unique_filename: true, overwrite: false },
-        (error, upload) => error || !upload ? reject(error || new Error('Cloudinary returned no result.')) : resolve(upload),
+        (error: any, upload: any) => error || !upload ? reject(error || new Error('Cloudinary returned no result.')) : resolve(upload),
       );
       stream.end(validated.buffer);
     });

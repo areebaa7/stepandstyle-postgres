@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { v2 as cloudinary } from 'cloudinary';
 import { verifyAdminRequest } from '@/lib/auth';
 import { authRateLimitHeaders, consumeAuthRateLimit, getAuthClientAddress } from '@/lib/authRateLimit';
 import {
@@ -9,6 +9,14 @@ import {
   uploadSecurityResponse,
   validateUploadFile,
 } from '@/lib/uploadSecurity';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
 
 export async function POST(request: NextRequest) {
   const admin = await verifyAdminRequest(request);
@@ -51,40 +59,28 @@ export async function POST(request: NextRequest) {
       const item = validated[i];
       const originalFile = files[i];
 
-      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-      const cleanName = originalFile.name.replace(/[^a-zA-Z0-9_.-]/g, '_');
-      const filePath = `media/${uniqueSuffix}-${cleanName}`;
+      const isVideo = originalFile.type.startsWith('video/');
 
-      // Upload directly to Supabase storage bucket 'step-and-styl-uploads'
-      const { data, error } = await supabase.storage
-        .from('step-and-styl-uploads')
-        .upload(filePath, item.buffer, {
-          contentType: originalFile.type || 'image/jpeg',
-          upsert: true,
-        });
+      const uploadResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { folder: 'media', resource_type: isVideo ? 'video' : 'image' },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+        uploadStream.end(Buffer.from(item.buffer));
+      });
 
-      if (error) {
-        console.error('Supabase storage upload error:', error);
-        throw new Error(error.message || 'Supabase upload failed.');
-      }
-
-      // Retrieve public HTTPS URL
-      const { data: publicUrlData } = supabase.storage
-        .from('step-and-styl-uploads')
-        .getPublicUrl(data.path);
-
-      if (!publicUrlData.publicUrl?.startsWith('https://')) {
-        throw new Error('Supabase returned an insecure URL.');
-      }
-
-      urls.push(publicUrlData.publicUrl);
+      const publicUrl = (uploadResult as any).secure_url;
+      urls.push(publicUrl);
     }
 
     return NextResponse.json({ success: true, urls }, { headers: { 'Cache-Control': 'no-store' } });
-  } catch (error) {
+  } catch (error: any) {
     const securityResponse = uploadSecurityResponse(error);
     if (securityResponse) return securityResponse;
-    console.error('Media upload failed:', error);
-    return NextResponse.json({ success: false, error: 'Upload failed.' }, { status: 500 });
+    console.error('Admin upload failed:', error);
+    return NextResponse.json({ success: false, error: error.message || 'Failed to upload files.' }, { status: 500 });
   }
 }

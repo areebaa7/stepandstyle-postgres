@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { v2 as cloudinary } from 'cloudinary';
 import { authRateLimitHeaders, consumeAuthRateLimit, getAuthClientAddress } from '@/lib/authRateLimit';
 import { assertRequestSize, MAX_RECEIPT_BYTES, uploadSecurityResponse, validateUploadFile } from '@/lib/uploadSecurity';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://msabiymjxqvdpxeddxbe.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_Q5C_SSnDN-cY6MoacYw7kg_zw9KVfEZ';
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,31 +34,20 @@ export async function POST(request: NextRequest) {
     // Defensive buffer extraction to prevent any runtime body type mismatch
     const fileBuffer = (validated as any)?.buffer || validated;
 
-    const ext = file.name.split('.').pop() || 'png';
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const fileName = `${timestamp}-${randomString}.${ext}`;
-    const targetBucket = 'step-and-styl-uploads';
-
-    // Upload directly using standard fetch (No npm package required)
-    const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/${targetBucket}/${fileName}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
-        'apikey': supabaseKey,
-        'Content-Type': file.type || 'image/png',
-        'x-upsert': 'true'
-      },
-      body: fileBuffer
+    // Use Cloudinary upload stream
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: 'receipts' },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        }
+      );
+      // We pass the buffer to the stream
+      uploadStream.end(Buffer.from(fileBuffer));
     });
 
-    if (!uploadRes.ok) {
-      const errText = await uploadRes.text();
-      console.error('Supabase REST upload error:', errText);
-      return NextResponse.json({ success: false, error: `Supabase Storage Error: ${uploadRes.statusText}` }, { status: 500 });
-    }
-
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${targetBucket}/${fileName}`;
+    const publicUrl = (uploadResult as any).secure_url;
 
     return NextResponse.json({ success: true, url: publicUrl }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error: any) {
